@@ -44,7 +44,7 @@ public class SeedCrackerEngine {
 
         if (distinct < 3 && !hasGateway) {
             int needed = 3 - distinct;
-            statusMessage = "Need " + needed + " more distinct structure(s) to solve! (Explore near Villages/Pyramids/Shipwrecks)";
+            statusMessage = "Need " + needed + " more distinct structure(s) to solve!";
             foundSeed = null;
             return;
         }
@@ -65,7 +65,7 @@ public class SeedCrackerEngine {
 
         threadPool.submit(() -> {
             try {
-                long totalSearch = 1L << 28; // 268M search range batch
+                long totalSearch = 1L << 32; // 4.2 Billion search range batch
                 long chunkSize = totalSearch / 100;
 
                 for (int i = 0; i < 100 && running.get(); i++) {
@@ -95,7 +95,7 @@ public class SeedCrackerEngine {
                         statusMessage = "Structure Seed Found (48-bit): " + s48;
                     }
                 } else {
-                    statusMessage = "No matching seed in batch. Explore 1 more structure!";
+                    statusMessage = "No seed found in range. Gather 1 more structure!";
                     foundSeed = null;
                 }
             } catch (Exception e) {

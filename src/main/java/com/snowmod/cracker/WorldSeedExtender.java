@@ -8,8 +8,8 @@ import java.util.List;
 public class WorldSeedExtender {
 
     /**
-     * Takes candidate 48-bit structure seed and tests all 65536 upper bit extensions (0..65535)
-     * against collected features.
+     * Takes candidate 48-bit structure seed and tests upper 16-bit extensions (0..65535)
+     * against collected structure coordinates.
      */
     public static List<Long> extendTo64Bit(long structureSeed48, List<FeatureData> features) {
         List<Long> matches = new ArrayList<>();

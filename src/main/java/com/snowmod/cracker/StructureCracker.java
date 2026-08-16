@@ -9,11 +9,11 @@ import java.util.List;
 public class StructureCracker {
 
     /**
-     * Verifies if a 48-bit seed generates the given structure feature.
+     * Verifies if a 48-bit seed generates the given structure feature at its exact chunk location.
      */
     public static boolean matchesStructureSeed(long seed48, FeatureData feature) {
         CollectedFeatureType type = feature.getType();
-        if (type.getSpacing() <= 0) return false; // Must be a valid region structure
+        if (type.getSpacing() <= 0) return false;
 
         int regionX = Math.floorDiv(feature.getChunkPos().x, type.getSpacing());
         int regionZ = Math.floorDiv(feature.getChunkPos().z, type.getSpacing());
@@ -35,12 +35,15 @@ public class StructureCracker {
         int expectedChunkX = regionX * type.getSpacing() + offsetX;
         int expectedChunkZ = regionZ * type.getSpacing() + offsetZ;
 
-        return Math.abs(feature.getChunkPos().x - expectedChunkX) <= 3 &&
-               Math.abs(feature.getChunkPos().z - expectedChunkZ) <= 3;
+        // Tight tolerance: exact origin for Pyramids/Monuments, <=1 chunk for Villages/Shipwrecks
+        int allowedTolerance = (type == CollectedFeatureType.VILLAGE || type == CollectedFeatureType.SHIPWRECK) ? 1 : 0;
+
+        return Math.abs(feature.getChunkPos().x - expectedChunkX) <= allowedTolerance &&
+               Math.abs(feature.getChunkPos().z - expectedChunkZ) <= allowedTolerance;
     }
 
     /**
-     * Finds 48-bit structure seeds matching all collected region structures.
+     * Fast multi-threaded solver for candidate 48-bit structure seeds matching all collected structures.
      */
     public static List<Long> findCandidateStructureSeeds(List<FeatureData> features, long startSeed, long endSeed) {
         List<Long> results = new ArrayList<>();
@@ -53,7 +56,7 @@ public class StructureCracker {
             }
         }
 
-        if (regionStructures.isEmpty()) return results;
+        if (regionStructures.size() < 3) return results; // Enforce at least 3 distinct structures
 
         for (long seed = startSeed; seed < endSeed; seed++) {
             boolean matchesAll = true;
@@ -64,7 +67,7 @@ public class StructureCracker {
                 }
             }
             if (matchesAll) {
-                results.add(seed);
+                results.add(seed & 0xFFFFFFFFFFFFL);
             }
         }
         return results;
