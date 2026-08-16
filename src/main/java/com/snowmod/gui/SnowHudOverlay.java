@@ -5,6 +5,7 @@ import com.snowmod.cracker.SeedCrackerEngine;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderTickCounter;
 
 public class SnowHudOverlay implements HudRenderCallback {
     private static final int COLOR_TITLE = 0xFF88CCFF;  // Ice Blue
@@ -13,7 +14,7 @@ public class SnowHudOverlay implements HudRenderCallback {
     private static final int COLOR_BG = 0x88000000;     // Semi-transparent black
 
     @Override
-    public void onHudRender(DrawContext drawContext, float tickDelta) {
+    public void onHudRender(DrawContext drawContext, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.options.hudHidden || client.player == null) return;
 

@@ -30,7 +30,7 @@ public class FeatureCollector {
         BlockPos playerPos = client.player.getBlockPos();
         ChunkPos centerChunk = new ChunkPos(playerPos);
 
-        int renderDistance = client.options.getClusteredRenderDistance();
+        int renderDistance = client.options.getViewDistance().getValue();
         int radius = Math.min(renderDistance, 8);
 
         for (int dx = -radius; dx <= radius; dx++) {
@@ -51,7 +51,7 @@ public class FeatureCollector {
 
         // Scan blocks in chunk for End Gateways and Monster Spawners
         int minY = world.getBottomY();
-        int maxY = world.getTopY();
+        int maxY = world.getTopYInclusive();
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
