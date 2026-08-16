@@ -8,11 +8,12 @@ import java.util.List;
 public class WorldSeedExtender {
 
     /**
-     * Takes candidate 48-bit structure seeds and iterates over all 65536 upper bit extensions (0..65535)
-     * to test noise/biome consistency against recorded features.
+     * Takes candidate 48-bit structure seed and tests all 65536 upper bit extensions (0..65535)
+     * against collected structure coordinates.
      */
     public static List<Long> extendTo64Bit(long structureSeed48, List<FeatureData> features) {
         List<Long> matches = new ArrayList<>();
+        if (features == null || features.isEmpty()) return matches;
 
         for (int upper = 0; upper < 65536; upper++) {
             long worldSeed64 = ((long) upper << 48) | (structureSeed48 & 0xFFFFFFFFFFFFL);
@@ -25,13 +26,9 @@ public class WorldSeedExtender {
     }
 
     private static boolean verifyWorldSeed(long worldSeed64, List<FeatureData> features) {
-        if (features.isEmpty()) return true;
-
-        // Verify world seed against feature requirements
         for (FeatureData feature : features) {
-            long hash = worldSeed64 ^ (feature.getChunkPos().x * 341873128712L + feature.getChunkPos().z * 132897987541L);
-            if ((hash & 0x7) == 0) { // Fast probability check
-                return true;
+            if (!StructureCracker.matchesStructureSeed(worldSeed64 & 0xFFFFFFFFFFFFL, feature)) {
+                return false;
             }
         }
         return true;

@@ -9,7 +9,7 @@ import java.util.List;
 public class StructureCracker {
 
     /**
-     * Checks if a 48-bit seed generates the given structure feature within its bounding region.
+     * Verifies if a 48-bit seed generates the given structure feature.
      */
     public static boolean matchesStructureSeed(long seed48, FeatureData feature) {
         CollectedFeatureType type = feature.getType();
@@ -25,6 +25,8 @@ public class StructureCracker {
         long lcgSeed = (stepSeed ^ 0x5DEECE66DL) & 0xFFFFFFFFFFFFL;
         lcgSeed = (lcgSeed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL;
         int maxOffset = type.getSpacing() - type.getSeparation();
+        if (maxOffset <= 0) return false;
+
         int offsetX = Math.abs((int) ((lcgSeed >>> 16) % maxOffset));
 
         lcgSeed = (lcgSeed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL;
@@ -33,17 +35,16 @@ public class StructureCracker {
         int expectedChunkX = regionX * type.getSpacing() + offsetX;
         int expectedChunkZ = regionZ * type.getSpacing() + offsetZ;
 
-        // Allow up to 3 chunk radius tolerance for structure bounding size (e.g. Villages)
         return Math.abs(feature.getChunkPos().x - expectedChunkX) <= 3 &&
                Math.abs(feature.getChunkPos().z - expectedChunkZ) <= 3;
     }
 
     /**
-     * Finds 48-bit structure seeds matching a list of collected structure features.
+     * Finds 48-bit structure seeds matching all collected features.
      */
     public static List<Long> findCandidateStructureSeeds(List<FeatureData> structures, long startSeed, long endSeed) {
         List<Long> results = new ArrayList<>();
-        if (structures.isEmpty()) return results;
+        if (structures == null || structures.isEmpty()) return results;
 
         for (long seed = startSeed; seed < endSeed; seed++) {
             boolean matchesAll = true;

@@ -13,6 +13,13 @@ public class SnowCommand {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
         dispatcher.register(ClientCommandManager.literal("snow")
+            .executes(ctx -> {
+                int features = FeatureCollector.getInstance().getCollectedFeatures().size();
+                String status = SeedCrackerEngine.getInstance().getStatusMessage();
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §fFeatures Collected: §e" + features + " §f| Engine Status: §a" + status));
+                ctx.getSource().sendFeedback(Text.literal("§7Commands: /snow crack §8| §7/snow seed §8| §7/snow clear §8| §7/snow status"));
+                return 1;
+            })
             .then(ClientCommandManager.literal("status").executes(ctx -> {
                 int features = FeatureCollector.getInstance().getCollectedFeatures().size();
                 String status = SeedCrackerEngine.getInstance().getStatusMessage();
@@ -20,13 +27,19 @@ public class SnowCommand {
                 return 1;
             }))
             .then(ClientCommandManager.literal("crack").executes(ctx -> {
+                int features = FeatureCollector.getInstance().getCollectedFeatures().size();
+                if (features == 0) {
+                    ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §cCannot crack: No structure features collected yet! Explore near Villages, Shipwrecks, or Temples first."));
+                    return 0;
+                }
                 SeedCrackerEngine.getInstance().startCracking();
                 ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §aSeed cracking task initiated in background..."));
                 return 1;
             }))
             .then(ClientCommandManager.literal("clear").executes(ctx -> {
                 FeatureCollector.getInstance().clear();
-                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §cCollected feature cache cleared."));
+                SeedCrackerEngine.getInstance().reset();
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §cCollected feature cache & solver state cleared."));
                 return 1;
             }))
             .then(ClientCommandManager.literal("seed").executes(ctx -> {

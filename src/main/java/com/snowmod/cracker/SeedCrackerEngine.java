@@ -26,12 +26,21 @@ public class SeedCrackerEngine {
         return INSTANCE;
     }
 
+    public void reset() {
+        running.set(false);
+        progressPercent.set(0);
+        statusMessage = "Idle";
+        foundSeed = null;
+        candidateSeeds.clear();
+    }
+
     public void startCracking() {
         if (running.get()) return;
 
         List<FeatureData> features = new ArrayList<>(FeatureCollector.getInstance().getCollectedFeatures());
         if (features.isEmpty()) {
             statusMessage = "No features collected yet. Explore more chunks!";
+            foundSeed = null;
             return;
         }
 
@@ -43,7 +52,7 @@ public class SeedCrackerEngine {
 
         threadPool.submit(() -> {
             try {
-                long totalSearch = 1L << 24; // 16M range search batch
+                long totalSearch = 1L << 28; // 268M candidate range batch
                 long chunkSize = totalSearch / 100;
 
                 for (int i = 0; i < 100 && running.get(); i++) {
@@ -51,7 +60,9 @@ public class SeedCrackerEngine {
                     long end = start + chunkSize;
 
                     List<Long> matches = StructureCracker.findCandidateStructureSeeds(features, start, end);
-                    candidateSeeds.addAll(matches);
+                    if (!matches.isEmpty()) {
+                        candidateSeeds.addAll(matches);
+                    }
                     progressPercent.set(i + 1);
 
                     if (!candidateSeeds.isEmpty()) {
@@ -71,10 +82,12 @@ public class SeedCrackerEngine {
                         statusMessage = "Structure Seed Found (48-bit): " + s48;
                     }
                 } else {
-                    statusMessage = "No matching seed found. Gather more structure features!";
+                    statusMessage = "No matching seed in batch. Gather 1-2 more features!";
+                    foundSeed = null;
                 }
             } catch (Exception e) {
                 statusMessage = "Error during cracking: " + e.getMessage();
+                foundSeed = null;
             } finally {
                 running.set(false);
             }
