@@ -9,7 +9,7 @@ public class WorldSeedExtender {
 
     /**
      * Takes candidate 48-bit structure seed and tests all 65536 upper bit extensions (0..65535)
-     * against collected structure coordinates.
+     * against collected features.
      */
     public static List<Long> extendTo64Bit(long structureSeed48, List<FeatureData> features) {
         List<Long> matches = new ArrayList<>();
@@ -27,8 +27,10 @@ public class WorldSeedExtender {
 
     private static boolean verifyWorldSeed(long worldSeed64, List<FeatureData> features) {
         for (FeatureData feature : features) {
-            if (!StructureCracker.matchesStructureSeed(worldSeed64 & 0xFFFFFFFFFFFFL, feature)) {
-                return false;
+            if (feature.getType().getSpacing() > 0) {
+                if (!StructureCracker.matchesStructureSeed(worldSeed64 & 0xFFFFFFFFFFFFL, feature)) {
+                    return false;
+                }
             }
         }
         return true;

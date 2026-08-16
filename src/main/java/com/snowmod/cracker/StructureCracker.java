@@ -13,7 +13,7 @@ public class StructureCracker {
      */
     public static boolean matchesStructureSeed(long seed48, FeatureData feature) {
         CollectedFeatureType type = feature.getType();
-        if (type.getSpacing() <= 0) return true;
+        if (type.getSpacing() <= 0) return false; // Must be a valid region structure
 
         int regionX = Math.floorDiv(feature.getChunkPos().x, type.getSpacing());
         int regionZ = Math.floorDiv(feature.getChunkPos().z, type.getSpacing());
@@ -40,15 +40,24 @@ public class StructureCracker {
     }
 
     /**
-     * Finds 48-bit structure seeds matching all collected features.
+     * Finds 48-bit structure seeds matching all collected region structures.
      */
-    public static List<Long> findCandidateStructureSeeds(List<FeatureData> structures, long startSeed, long endSeed) {
+    public static List<Long> findCandidateStructureSeeds(List<FeatureData> features, long startSeed, long endSeed) {
         List<Long> results = new ArrayList<>();
-        if (structures == null || structures.isEmpty()) return results;
+        if (features == null || features.isEmpty()) return results;
+
+        List<FeatureData> regionStructures = new ArrayList<>();
+        for (FeatureData f : features) {
+            if (f.getType().getSpacing() > 0) {
+                regionStructures.add(f);
+            }
+        }
+
+        if (regionStructures.isEmpty()) return results;
 
         for (long seed = startSeed; seed < endSeed; seed++) {
             boolean matchesAll = true;
-            for (FeatureData struct : structures) {
+            for (FeatureData struct : regionStructures) {
                 if (!matchesStructureSeed(seed, struct)) {
                     matchesAll = false;
                     break;

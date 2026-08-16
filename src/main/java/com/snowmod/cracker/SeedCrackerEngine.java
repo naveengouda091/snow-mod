@@ -38,8 +38,15 @@ public class SeedCrackerEngine {
         if (running.get()) return;
 
         List<FeatureData> features = new ArrayList<>(FeatureCollector.getInstance().getCollectedFeatures());
-        if (features.isEmpty()) {
-            statusMessage = "No features collected yet. Explore more chunks!";
+        List<FeatureData> regionStructures = new ArrayList<>();
+        for (FeatureData f : features) {
+            if (f.getType().getSpacing() > 0) {
+                regionStructures.add(f);
+            }
+        }
+
+        if (regionStructures.isEmpty()) {
+            statusMessage = "No structure features collected yet. Explore near Villages, Shipwrecks, or Temples!";
             foundSeed = null;
             return;
         }
@@ -52,14 +59,14 @@ public class SeedCrackerEngine {
 
         threadPool.submit(() -> {
             try {
-                long totalSearch = 1L << 28; // 268M candidate range batch
+                long totalSearch = 1L << 28; // 268M search range batch
                 long chunkSize = totalSearch / 100;
 
                 for (int i = 0; i < 100 && running.get(); i++) {
                     long start = i * chunkSize;
                     long end = start + chunkSize;
 
-                    List<Long> matches = StructureCracker.findCandidateStructureSeeds(features, start, end);
+                    List<Long> matches = StructureCracker.findCandidateStructureSeeds(regionStructures, start, end);
                     if (!matches.isEmpty()) {
                         candidateSeeds.addAll(matches);
                     }
@@ -73,7 +80,7 @@ public class SeedCrackerEngine {
                 if (!candidateSeeds.isEmpty()) {
                     long s48 = candidateSeeds.get(0);
                     statusMessage = "Extending to 64-bit world seed...";
-                    List<Long> seeds64 = WorldSeedExtender.extendTo64Bit(s48, features);
+                    List<Long> seeds64 = WorldSeedExtender.extendTo64Bit(s48, regionStructures);
                     if (!seeds64.isEmpty()) {
                         foundSeed = seeds64.get(0);
                         statusMessage = "Seed Cracked Successfully!";
@@ -82,7 +89,7 @@ public class SeedCrackerEngine {
                         statusMessage = "Structure Seed Found (48-bit): " + s48;
                     }
                 } else {
-                    statusMessage = "No matching seed in batch. Gather 1-2 more features!";
+                    statusMessage = "No matching seed in batch. Explore 1 more structure!";
                     foundSeed = null;
                 }
             } catch (Exception e) {
