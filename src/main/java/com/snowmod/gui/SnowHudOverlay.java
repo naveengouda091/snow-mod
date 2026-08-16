@@ -17,7 +17,7 @@ public class SnowHudOverlay implements HudRenderCallback {
     @Override
     public void onHudRender(DrawContext drawContext, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.options.hudHidden || client.player == null) return;
+        if (!com.snowmod.config.SnowConfig.enabled || !com.snowmod.config.SnowConfig.renderHud || client.options.hudHidden || client.player == null) return;
 
         SeedCrackerEngine engine = SeedCrackerEngine.getInstance();
         BitTracker tracker = BitTracker.getInstance();

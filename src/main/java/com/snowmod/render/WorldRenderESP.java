@@ -15,7 +15,7 @@ public class WorldRenderESP {
 
     public static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || client.player == null) return;
+        if (!com.snowmod.config.SnowConfig.enabled || !com.snowmod.config.SnowConfig.renderEsp || client.world == null || client.player == null) return;
 
         Vec3d cameraPos = context.camera().getPos();
         MatrixStack matrices = context.matrixStack();

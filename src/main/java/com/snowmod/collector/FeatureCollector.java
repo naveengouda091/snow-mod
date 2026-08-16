@@ -30,7 +30,7 @@ public class FeatureCollector {
     }
 
     public void onClientTick(MinecraftClient client) {
-        if (client.world == null || client.player == null) return;
+        if (!com.snowmod.config.SnowConfig.enabled || client.world == null || client.player == null) return;
 
         ClientWorld world = client.world;
         BlockPos playerPos = client.player.getBlockPos();

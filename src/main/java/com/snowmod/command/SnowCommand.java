@@ -2,6 +2,7 @@ package com.snowmod.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.snowmod.collector.FeatureCollector;
+import com.snowmod.config.SnowConfig;
 import com.snowmod.cracker.SeedCrackerEngine;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -16,10 +17,29 @@ public class SnowCommand {
             .executes(ctx -> {
                 int features = FeatureCollector.getInstance().getCollectedFeatures().size();
                 String status = SeedCrackerEngine.getInstance().getStatusMessage();
-                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §fFeatures Collected: §e" + features + " §f| Engine Status: §a" + status));
-                ctx.getSource().sendFeedback(Text.literal("§7Commands: /snow crack §8| §7/snow seed §8| §7/snow clear §8| §7/snow status"));
+                String state = SnowConfig.enabled ? "§aENABLED" : "§cDISABLED";
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §fStatus: " + state + " §f| Features: §e" + features + " §f| Engine: §a" + status));
+                ctx.getSource().sendFeedback(Text.literal("§7Commands: /snow toggle §8| §7/snow hud §8| §7/snow esp §8| §7/snow crack §8| §7/snow seed §8| §7/snow clear"));
                 return 1;
             })
+            .then(ClientCommandManager.literal("toggle").executes(ctx -> {
+                SnowConfig.enabled = !SnowConfig.enabled;
+                String state = SnowConfig.enabled ? "§aENABLED" : "§cDISABLED";
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §fMod toggled " + state));
+                return 1;
+            }))
+            .then(ClientCommandManager.literal("hud").executes(ctx -> {
+                SnowConfig.renderHud = !SnowConfig.renderHud;
+                String state = SnowConfig.renderHud ? "§aENABLED" : "§cDISABLED";
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §fHUD Overlay toggled " + state));
+                return 1;
+            }))
+            .then(ClientCommandManager.literal("esp").executes(ctx -> {
+                SnowConfig.renderEsp = !SnowConfig.renderEsp;
+                String state = SnowConfig.renderEsp ? "§aENABLED" : "§cDISABLED";
+                ctx.getSource().sendFeedback(Text.literal("§b[SnowMod] §f3D World ESP toggled " + state));
+                return 1;
+            }))
             .then(ClientCommandManager.literal("status").executes(ctx -> {
                 int features = FeatureCollector.getInstance().getCollectedFeatures().size();
                 String status = SeedCrackerEngine.getInstance().getStatusMessage();
