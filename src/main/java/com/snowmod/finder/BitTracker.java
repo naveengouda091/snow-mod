@@ -3,14 +3,13 @@ package com.snowmod.finder;
 import com.snowmod.cracker.SeedCrackerEngine;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BitTracker {
     private static final BitTracker INSTANCE = new BitTracker();
     private final Set<Finder> activeFinders = ConcurrentHashMap.newKeySet();
-    private final AtomicInteger totalBits = new AtomicInteger(0);
     private boolean autoCrackTriggered = false;
 
     private BitTracker() {}
@@ -21,13 +20,14 @@ public class BitTracker {
 
     public void addFinder(Finder finder) {
         if (activeFinders.add(finder)) {
-            int newTotal = totalBits.addAndGet(finder.getBitsContributed());
-            
-            // Auto-trigger cracking as soon as 48 bits are reached
-            if (newTotal >= 48 && !autoCrackTriggered) {
-                autoCrackTriggered = true;
-                SeedCrackerEngine.getInstance().startCracking();
-            }
+            checkAutoCrack();
+        }
+    }
+
+    private void checkAutoCrack() {
+        if (getStructureBits() >= 48 && !autoCrackTriggered) {
+            autoCrackTriggered = true;
+            SeedCrackerEngine.getInstance().startCracking();
         }
     }
 
@@ -35,21 +35,48 @@ public class BitTracker {
         return Collections.unmodifiableSet(activeFinders);
     }
 
-    public int getTotalBits() {
-        return totalBits.get();
+    public int getDistinctStructureCount() {
+        Set<String> distinctStructures = new HashSet<>();
+        for (Finder f : activeFinders) {
+            if (f instanceof StructureFinder sf) {
+                int spacing = sf.getType().getSpacing();
+                if (spacing > 0) {
+                    int rx = Math.floorDiv(sf.getChunkPos().x, spacing);
+                    int rz = Math.floorDiv(sf.getChunkPos().z, spacing);
+                    distinctStructures.add(sf.getType().name() + ":" + rx + ":" + rz);
+                }
+            }
+        }
+        return distinctStructures.size();
+    }
+
+    public boolean hasEndGateway() {
+        for (Finder f : activeFinders) {
+            if (f instanceof EndGatewayFinder) return true;
+        }
+        return false;
     }
 
     public int getStructureBits() {
-        return Math.min(48, totalBits.get());
+        if (hasEndGateway()) return 48;
+        int distinct = getDistinctStructureCount();
+        return Math.min(48, distinct * 16);
     }
 
     public int getWorldBits() {
-        return Math.max(0, Math.min(16, totalBits.get() - 48));
+        int biomes = 0;
+        for (Finder f : activeFinders) {
+            if (f instanceof BiomeFinder) biomes++;
+        }
+        return Math.min(16, biomes);
+    }
+
+    public int getTotalBits() {
+        return getStructureBits() + getWorldBits();
     }
 
     public void clear() {
         activeFinders.clear();
-        totalBits.set(0);
         autoCrackTriggered = false;
     }
 }

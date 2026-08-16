@@ -2,6 +2,7 @@ package com.snowmod.cracker;
 
 import com.snowmod.collector.FeatureCollector;
 import com.snowmod.collector.FeatureData;
+import com.snowmod.finder.BitTracker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,18 +38,23 @@ public class SeedCrackerEngine {
     public void startCracking() {
         if (running.get()) return;
 
+        BitTracker tracker = BitTracker.getInstance();
+        int distinct = tracker.getDistinctStructureCount();
+        boolean hasGateway = tracker.hasEndGateway();
+
+        if (distinct < 3 && !hasGateway) {
+            int needed = 3 - distinct;
+            statusMessage = "Need " + needed + " more distinct structure(s) to solve! (Explore near Villages/Pyramids/Shipwrecks)";
+            foundSeed = null;
+            return;
+        }
+
         List<FeatureData> features = new ArrayList<>(FeatureCollector.getInstance().getCollectedFeatures());
         List<FeatureData> regionStructures = new ArrayList<>();
         for (FeatureData f : features) {
             if (f.getType().getSpacing() > 0) {
                 regionStructures.add(f);
             }
-        }
-
-        if (regionStructures.isEmpty()) {
-            statusMessage = "No structure features collected yet. Explore near Villages, Shipwrecks, or Temples!";
-            foundSeed = null;
-            return;
         }
 
         running.set(true);
