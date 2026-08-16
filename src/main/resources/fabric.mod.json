@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "snowmod",
+  "version": "${version}",
+  "name": "Snow Mod",
+  "description": "A client environment utility featuring seed reduction and environmental analysis.",
+  "authors": [
+    "SnowMod Dev"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/snowmod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.snowmod.SnowMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
