@@ -4,6 +4,7 @@ import com.snowmod.finder.*;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BellBlockEntity;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.MobSpawnerBlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -39,7 +40,7 @@ public class FeatureCollector {
         int renderDistance = client.options.getViewDistance().getValue();
         int radius = Math.min(renderDistance, 16);
 
-        // Record player biome sample
+        // Record player biome sample for 64-bit extension
         RegistryEntry<Biome> biomeEntry = world.getBiome(playerPos);
         String biomeId = biomeEntry.getKey().map(k -> k.getValue().toString()).orElse("unknown");
         BitTracker.getInstance().addFinder(new BiomeFinder(centerChunk, playerPos, world.getRegistryKey().getValue().getPath(), biomeId));
@@ -60,7 +61,7 @@ public class FeatureCollector {
 
         String dimension = world.getRegistryKey().getValue().getPath();
 
-        // 1. Block Entity Scanning
+        // 1. Fast Block Entity Scanning
         for (BlockEntity be : chunk.getBlockEntities().values()) {
             BlockPos pos = be.getPos();
             BlockState state = chunk.getBlockState(pos);
@@ -76,45 +77,81 @@ public class FeatureCollector {
                 BitTracker.getInstance().addFinder(new EndGatewayFinder(chunkPos, pos, dimension, angle));
             } else if (be instanceof BellBlockEntity || state.getBlock() instanceof BedBlock) {
                 registerStructure(CollectedFeatureType.VILLAGE, chunkPos, pos, dimension);
+            } else if (be instanceof ChestBlockEntity && "overworld".equals(dimension) && pos.getY() <= 65) {
+                // Shipwreck Chest check
+                Block down = chunk.getBlockState(pos.down()).getBlock();
+                if (down == Blocks.OAK_PLANKS || down == Blocks.SPRUCE_PLANKS || down == Blocks.DARK_OAK_PLANKS ||
+                    down == Blocks.OAK_LOG || down == Blocks.SPRUCE_LOG || down == Blocks.DARK_OAK_LOG ||
+                    down == Blocks.STRIPPED_OAK_LOG || down == Blocks.STRIPPED_SPRUCE_LOG || down == Blocks.STRIPPED_DARK_OAK_LOG ||
+                    down == Blocks.WATER || down == Blocks.SAND || down == Blocks.GRAVEL) {
+                    registerStructure(CollectedFeatureType.SHIPWRECK, chunkPos, pos, dimension);
+                }
             }
         }
 
-        // 2. Block State Pattern Scanning
+        // 2. Full Vertical Block State Pattern Scanning
         int minY = world.getBottomY();
         int maxY = world.getTopYInclusive();
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                for (int y = minY; y < maxY; y += 4) {
+                for (int y = minY; y < maxY; y++) {
                     BlockPos pos = new BlockPos(chunkPos.getStartX() + x, y, chunkPos.getStartZ() + z);
                     BlockState state = chunk.getBlockState(pos);
                     Block block = state.getBlock();
 
-                    if (block == Blocks.AIR || block == Blocks.STONE || block == Blocks.DIRT || block == Blocks.GRASS_BLOCK) continue;
+                    if (block == Blocks.AIR || block == Blocks.WATER || block == Blocks.STONE || block == Blocks.DIRT || block == Blocks.GRASS_BLOCK) continue;
 
+                    // Village
                     if (block == Blocks.BELL || block == Blocks.COMPOSTER || block == Blocks.LECTERN || block == Blocks.BLAST_FURNACE || block == Blocks.SMOKER) {
                         registerStructure(CollectedFeatureType.VILLAGE, chunkPos, pos, dimension);
-                    } else if (block == Blocks.CHISELED_SANDSTONE || block == Blocks.BLUE_TERRACOTTA) {
+                    }
+                    // Shipwreck (Stripped Logs / Hulls in Overworld water/beaches)
+                    else if (block == Blocks.STRIPPED_OAK_LOG || block == Blocks.STRIPPED_SPRUCE_LOG || block == Blocks.STRIPPED_DARK_OAK_LOG ||
+                             block == Blocks.STRIPPED_JUNGLE_LOG || block == Blocks.STRIPPED_ACACIA_LOG || block == Blocks.STRIPPED_BIRCH_LOG ||
+                             block == Blocks.STRIPPED_MANGROVE_LOG || block == Blocks.STRIPPED_CHERRY_LOG) {
+                        if ("overworld".equals(dimension) && y <= 65) {
+                            registerStructure(CollectedFeatureType.SHIPWRECK, chunkPos, pos, dimension);
+                        }
+                    }
+                    // Desert Pyramid
+                    else if (block == Blocks.CHISELED_SANDSTONE || block == Blocks.BLUE_TERRACOTTA) {
                         registerStructure(CollectedFeatureType.DESERT_PYRAMID, chunkPos, pos, dimension);
-                    } else if (block == Blocks.CRYING_OBSIDIAN) {
+                    }
+                    // Ruined Portal
+                    else if (block == Blocks.CRYING_OBSIDIAN) {
                         registerStructure(CollectedFeatureType.RUINED_PORTAL, chunkPos, pos, dimension);
-                    } else if (block == Blocks.VAULT || block == Blocks.TRIAL_SPAWNER || block == Blocks.CHISELED_TUFF) {
+                    }
+                    // Trial Chambers (1.21+)
+                    else if (block == Blocks.VAULT || block == Blocks.TRIAL_SPAWNER || block == Blocks.CHISELED_TUFF) {
                         registerStructure(CollectedFeatureType.TRIAL_CHAMBERS, chunkPos, pos, dimension);
-                    } else if (block == Blocks.REINFORCED_DEEPSLATE || block == Blocks.SCULK_SHRIEKER) {
+                    }
+                    // Ancient City
+                    else if (block == Blocks.REINFORCED_DEEPSLATE || block == Blocks.SCULK_SHRIEKER) {
                         registerStructure(CollectedFeatureType.ANCIENT_CITY, chunkPos, pos, dimension);
-                    } else if (block == Blocks.PRISMARINE || block == Blocks.SEA_LANTERN) {
+                    }
+                    // Ocean Monument
+                    else if (block == Blocks.PRISMARINE || block == Blocks.SEA_LANTERN) {
                         registerStructure(CollectedFeatureType.OCEAN_MONUMENT, chunkPos, pos, dimension);
-                    } else if (block == Blocks.MOSSY_COBBLESTONE && chunk.getBlockState(pos.up()).isOf(Blocks.CHISELED_STONE_BRICKS)) {
+                    }
+                    // Jungle Temple
+                    else if (block == Blocks.MOSSY_COBBLESTONE && chunk.getBlockState(pos.up()).isOf(Blocks.CHISELED_STONE_BRICKS)) {
                         registerStructure(CollectedFeatureType.JUNGLE_TEMPLE, chunkPos, pos, dimension);
-                    } else if (block == Blocks.NETHER_BRICKS || block == Blocks.NETHER_BRICK_FENCE) {
+                    }
+                    // Nether Fortress
+                    else if (block == Blocks.NETHER_BRICKS || block == Blocks.NETHER_BRICK_FENCE) {
                         if ("the_nether".equals(dimension)) {
                             registerStructure(CollectedFeatureType.NETHER_FORTRESS, chunkPos, pos, dimension);
                         }
-                    } else if (block == Blocks.POLISHED_BLACKSTONE_BRICKS || block == Blocks.GILDED_BLACKSTONE) {
+                    }
+                    // Bastion Remnant
+                    else if (block == Blocks.POLISHED_BLACKSTONE_BRICKS || block == Blocks.GILDED_BLACKSTONE) {
                         if ("the_nether".equals(dimension)) {
                             registerStructure(CollectedFeatureType.BASTION_REMNANT, chunkPos, pos, dimension);
                         }
-                    } else if (block == Blocks.PURPUR_BLOCK || block == Blocks.END_STONE_BRICKS) {
+                    }
+                    // End City
+                    else if (block == Blocks.PURPUR_BLOCK || block == Blocks.END_STONE_BRICKS) {
                         if ("the_end".equals(dimension)) {
                             registerStructure(CollectedFeatureType.END_CITY, chunkPos, pos, dimension);
                         }
